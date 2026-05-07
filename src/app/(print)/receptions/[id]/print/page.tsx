@@ -1,41 +1,18 @@
-import { getReceptionAction } from "@/actions/reception-actions";
 import { notFound } from "next/navigation";
 import { PrintToolbar } from "@/components/receptions/print-toolbar";
 import { Smartphone } from "lucide-react";
+import { getReceptionById } from "@/repositories/reception-repository";
+import {
+  BRAND_LABELS,
+  PAYMENT_METHOD_LABELS,
+  STATUS_LABELS,
+} from "@/lib/constants";
 
-const brandLabel: Record<string, string> = {
-  APPLE: "Apple",
-  SAMSUNG: "Samsung",
-  HUAWEI: "Huawei",
-  XIAOMI: "Xiaomi",
-  OPPO: "Oppo",
-  VIVO: "Vivo",
-  MOTOROLA: "Motorola",
-  LG: "LG",
-  GOOGLE: "Google",
-  ONEPLUS: "OnePlus",
-  NOKIA: "Nokia",
-  SONY: "Sony",
-  ZTE: "ZTE",
-  OTHER: "Otra",
-};
-
-const statusLabel: Record<string, string> = {
-  RECEIVED: "Recibido",
-  DIAGNOSING: "En diagnóstico",
-  WAITING_PARTS: "Esperando piezas",
-  REPAIRING: "En reparación",
-  READY: "Listo para entrega",
-  DELIVERED: "Entregado",
-  CANCELLED: "Cancelado",
-};
-
-const methodLabel: Record<string, string> = {
-  CASH: "Efectivo",
-  CARD: "Tarjeta",
-  TRANSFER: "Transferencia",
-  OTHER: "Otro",
-};
+// Pure Server Component. No browser APIs, no event handlers, no client state.
+// Auth is enforced by the parent (print)/layout.tsx (which checks getSession).
+// All interactive bits (Imprimir / Volver) live in <PrintToolbar/> behind a
+// "use client" boundary.
+export const dynamic = "force-dynamic";
 
 export default async function PrintOrderPage({
   params,
@@ -43,7 +20,7 @@ export default async function PrintOrderPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const reception = await getReceptionAction(id);
+  const reception = await getReceptionById(id);
   if (!reception) notFound();
 
   const totalPaid = reception.payments.reduce((sum, p) => sum + p.amount, 0);
@@ -119,7 +96,7 @@ export default async function PrintOrderPage({
             <div>
               <p className="text-[11px] text-gray-500">Marca</p>
               <p className="font-medium">
-                {brandLabel[reception.brand] ?? reception.brand}
+                {BRAND_LABELS[reception.brand] ?? reception.brand}
               </p>
             </div>
             <div>
@@ -159,7 +136,7 @@ export default async function PrintOrderPage({
               Estado actual
             </h2>
             <p className="text-base font-semibold">
-              {statusLabel[reception.status] ?? reception.status}
+              {STATUS_LABELS[reception.status] ?? reception.status}
             </p>
             {reception.technician && (
               <p className="mt-1 text-xs text-gray-600">
@@ -212,7 +189,7 @@ export default async function PrintOrderPage({
                     </td>
                     <td className="py-1">{p.concept}</td>
                     <td className="py-1">
-                      {methodLabel[p.method] ?? p.method}
+                      {PAYMENT_METHOD_LABELS[p.method] ?? p.method}
                     </td>
                     <td className="py-1 text-right font-medium">
                       ${p.amount.toFixed(2)}

@@ -53,15 +53,21 @@ function Button({
   asChild,
   children,
   render,
+  nativeButton,
   ...props
 }: ButtonOwnProps) {
   const finalClassName = cn(buttonVariants({ variant, size, className }))
 
+  // When asChild is used, the consumer is rendering a non-<button> element
+  // (typically next/link's <a>). Base UI's <Button> defaults nativeButton=true
+  // and warns when the render element isn't <button>, so flip the default
+  // here unless the caller explicitly opted in.
   if (asChild && React.isValidElement(children)) {
     return (
       <ButtonPrimitive
         data-slot="button"
         className={finalClassName}
+        nativeButton={nativeButton ?? false}
         render={children as React.ReactElement<Record<string, unknown>>}
         {...(props as ButtonPrimitive.Props)}
       />
@@ -72,6 +78,7 @@ function Button({
     <ButtonPrimitive
       data-slot="button"
       className={finalClassName}
+      nativeButton={nativeButton}
       render={render}
       {...(props as ButtonPrimitive.Props)}
     >
