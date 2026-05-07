@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  EMPLOYEE
+  TECHNICIAN
+}
+
+enum Brand {
+  APPLE
+  SAMSUNG
+  HUAWEI
+  XIAOMI
+  OPPO
+  VIVO
+  MOTOROLA
+  LG
+  GOOGLE
+  ONEPLUS
+  NOKIA
+  SONY
+  ZTE
+  OTHER
+}
+
+enum ReceptionStatus {
+  RECEIVED
+  DIAGNOSING
+  WAITING_PARTS
+  REPAIRING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  OTHER
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String
+  password      String
+  role          UserRole      @default(EMPLOYEE)
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  receptions    Reception[]   @relation("AssignedTechnician")
+}
+
+model Client {
+  id          String        @id @default(cuid())
+  name        String
+  phone       String        @unique
+  email       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  receptions  Reception[]
+}
+
+model Reception {
+  id              String          @id @default(cuid())
+  folio           String          @unique
+  trackingToken   String          @unique
+  clientId        String
+  client          Client          @relation(fields: [clientId], references: [id])
+  technicianId    String?
+  technician      User?           @relation("AssignedTechnician", fields: [technicianId], references: [id])
+  brand           Brand
+  model           String
+  color           String
+  imei            String?
+  problem         String
+  accessories     String
+  status          ReceptionStatus @default(RECEIVED)
+  totalCost       Float           @default(0)
+  signatureData   String?
+  signatureDate   DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  statusHistory   StatusHistory[]
+  payments        Payment[]
+}
+
+model StatusHistory {
+  id           String          @id @default(cuid())
+  receptionId  String
+  reception    Reception       @relation(fields: [receptionId], references: [id], onDelete: Cascade)
+  status       ReceptionStatus
+  notes        String?
+  createdAt    DateTime        @default(now())
+}
+
+model Payment {
+  id            String          @id @default(cuid())
+  receptionId   String
+  reception     Reception       @relation(fields: [receptionId], references: [id], onDelete: Cascade)
+  amount        Float
+  method        PaymentMethod
+  concept       String
+  reference     String?
+  status        PaymentStatus   @default(PAID)
+  createdAt     DateTime        @default(now())
+}
