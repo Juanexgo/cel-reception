@@ -6,16 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Mail, Phone } from "lucide-react";
 import Link from "next/link";
-
-const statusConfig: Record<string, { label: string; color: string }> = {
-  RECEIVED: { label: "Recibido", color: "bg-blue-100 text-blue-800" },
-  DIAGNOSING: { label: "Diagnóstico", color: "bg-yellow-100 text-yellow-800" },
-  WAITING_PARTS: { label: "Esperando piezas", color: "bg-orange-100 text-orange-800" },
-  REPAIRING: { label: "En reparación", color: "bg-purple-100 text-purple-800" },
-  READY: { label: "Listo", color: "bg-green-100 text-green-800" },
-  DELIVERED: { label: "Entregado", color: "bg-slate-100 text-slate-800" },
-  CANCELLED: { label: "Cancelado", color: "bg-red-100 text-red-800" },
-};
+import { BRAND_LABELS, STATUS_COLORS, STATUS_LABELS } from "@/lib/constants";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,12 +17,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/clients">
-          <Button variant="outline" size="sm">
+        <Button asChild variant="outline" size="sm">
+          <Link href="/clients">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver
-          </Button>
-        </Link>
+          </Link>
+        </Button>
         <div>
           <h1 className="text-2xl font-bold">{client.name}</h1>
           <p className="text-gray-500">Historial del cliente</p>
@@ -93,27 +84,26 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               </TableHeader>
               <TableBody>
                 {client.receptions.map((r) => {
-                  const config = statusConfig[r.status] || statusConfig.RECEIVED;
+                  const statusLabel = STATUS_LABELS[r.status] ?? r.status;
+                  const statusColor = STATUS_COLORS[r.status] ?? STATUS_COLORS.RECEIVED;
                   return (
                     <TableRow key={r.id}>
                       <TableCell className="font-mono font-medium">{r.folio}</TableCell>
                       <TableCell>
-                        {r.brand} {r.model}
+                        {BRAND_LABELS[r.brand] ?? r.brand} {r.model}
                       </TableCell>
                       <TableCell className="max-w-xs truncate">{r.problem}</TableCell>
                       <TableCell>
-                        <Badge className={config.color}>{config.label}</Badge>
+                        <Badge className={statusColor}>{statusLabel}</Badge>
                       </TableCell>
-                      <TableCell>{(r as any).technician?.name || "—"}</TableCell>
+                      <TableCell>{r.technician?.name || "—"}</TableCell>
                       <TableCell>
                         {new Date(r.createdAt).toLocaleDateString("es-MX")}
                       </TableCell>
                       <TableCell>
-                        <Link href={`/receptions/${r.id}`}>
-                          <Button variant="outline" size="sm">
-                            Ver
-                          </Button>
-                        </Link>
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/receptions/${r.id}`}>Ver</Link>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );

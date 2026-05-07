@@ -1,13 +1,15 @@
-import { getUsersAction, createUserAction } from "@/actions/user-actions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getUsersAction } from "@/actions/user-actions";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import { NewUserDialog } from "@/components/users/new-user-dialog";
 
 const roleConfig: Record<string, { label: string; color: string }> = {
   ADMIN: { label: "Administrador", color: "bg-red-100 text-red-800" },
@@ -25,56 +27,7 @@ export default async function UsersPage() {
           <h1 className="text-2xl font-bold">Usuarios</h1>
           <p className="text-gray-500">Gestión de usuarios y técnicos</p>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Usuario
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Nuevo Usuario</DialogTitle>
-            </DialogHeader>
-            <form
-              action={async (formData) => {
-                "use server";
-                const { createUserAction } = await import("@/actions/user-actions");
-                await createUserAction(null, formData);
-              }}
-              className="space-y-4"
-            >
-              <div className="space-y-2">
-                <Label>Nombre</Label>
-                <Input name="name" required />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input name="email" type="email" required />
-              </div>
-              <div className="space-y-2">
-                <Label>Contraseña</Label>
-                <Input name="password" type="password" required minLength={6} />
-              </div>
-              <div className="space-y-2">
-                <Label>Rol</Label>
-                <Select name="role" required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar rol" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ADMIN">Administrador</SelectItem>
-                    <SelectItem value="EMPLOYEE">Empleado</SelectItem>
-                    <SelectItem value="TECHNICIAN">Técnico</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit" className="w-full">
-                Crear Usuario
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <NewUserDialog />
       </div>
 
       <Card>
@@ -92,7 +45,7 @@ export default async function UsersPage() {
             {users.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-gray-500 py-8">
-                  No hay usuarios
+                  No hay usuarios. Cree el primero con el botón de arriba.
                 </TableCell>
               </TableRow>
             ) : (
@@ -106,7 +59,13 @@ export default async function UsersPage() {
                       <Badge className={role.color}>{role.label}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={user.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                      <Badge
+                        className={
+                          user.isActive
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }
+                      >
                         {user.isActive ? "Activo" : "Inactivo"}
                       </Badge>
                     </TableCell>

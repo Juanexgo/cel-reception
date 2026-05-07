@@ -17,7 +17,7 @@ export type ClientInput = z.infer<typeof clientSchema>;
 
 export const receptionSchema = z.object({
   clientId: z.string().min(1, "Seleccione un cliente"),
-  technicianId: z.string().optional().or(z.literal("")),
+  technicianId: z.string().optional(),
   brand: z.string().min(1, "Seleccione una marca"),
   model: z.string().min(1, "El modelo es requerido"),
   color: z.string().min(1, "El color es requerido"),

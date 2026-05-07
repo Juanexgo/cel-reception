@@ -31,12 +31,12 @@ export default async function ClientsPage({
           <h1 className="text-2xl font-bold">Clientes</h1>
           <p className="text-gray-500">Gestión de clientes</p>
         </div>
-        <Link href="/clients/new">
-          <Button>
+        <Button asChild>
+          <Link href="/clients/new">
             <Plus className="h-4 w-4 mr-2" />
             Nuevo Cliente
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
 
       <form className="flex gap-3">
@@ -77,16 +77,14 @@ export default async function ClientsPage({
                   <TableCell className="font-medium">{client.name}</TableCell>
                   <TableCell>{client.phone}</TableCell>
                   <TableCell>{client.email || "—"}</TableCell>
-                  <TableCell>{(client as any)._count?.receptions || 0}</TableCell>
+                  <TableCell>{client._count?.receptions ?? 0}</TableCell>
                   <TableCell>
                     {new Date(client.createdAt).toLocaleDateString("es-MX")}
                   </TableCell>
                   <TableCell>
-                    <Link href={`/clients/${client.id}`}>
-                      <Button variant="outline" size="sm">
-                        Ver
-                      </Button>
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/clients/${client.id}`}>Ver</Link>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))

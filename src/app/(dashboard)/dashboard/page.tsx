@@ -2,16 +2,27 @@ import { getDashboardStatsAction } from "@/actions/reception-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { ClipboardList, Clock, CheckCircle, Truck, Wrench, Package, XCircle, DollarSign } from "lucide-react";
+import {
+  ClipboardList,
+  Clock,
+  CheckCircle,
+  Truck,
+  Wrench,
+  Package,
+  XCircle,
+  DollarSign,
+  type LucideIcon,
+} from "lucide-react";
+import { BRAND_LABELS, STATUS_COLORS, STATUS_LABELS } from "@/lib/constants";
 
-const statusConfig: Record<string, { label: string; icon: any; color: string }> = {
-  RECEIVED: { label: "Recibido", icon: ClipboardList, color: "bg-blue-100 text-blue-800" },
-  DIAGNOSING: { label: "Diagnóstico", icon: Clock, color: "bg-yellow-100 text-yellow-800" },
-  WAITING_PARTS: { label: "Esperando piezas", icon: Package, color: "bg-orange-100 text-orange-800" },
-  REPAIRING: { label: "En reparación", icon: Wrench, color: "bg-purple-100 text-purple-800" },
-  READY: { label: "Listo", icon: CheckCircle, color: "bg-green-100 text-green-800" },
-  DELIVERED: { label: "Entregado", icon: Truck, color: "bg-slate-100 text-slate-800" },
-  CANCELLED: { label: "Cancelado", icon: XCircle, color: "bg-red-100 text-red-800" },
+const statusIcons: Record<string, LucideIcon> = {
+  RECEIVED: ClipboardList,
+  DIAGNOSING: Clock,
+  WAITING_PARTS: Package,
+  REPAIRING: Wrench,
+  READY: CheckCircle,
+  DELIVERED: Truck,
+  CANCELLED: XCircle,
 };
 
 export default async function DashboardPage() {
@@ -71,16 +82,16 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        {Object.entries(statusConfig).map(([key, config]) => {
-          const Icon = config.icon;
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
+        {Object.entries(STATUS_LABELS).map(([key, label]) => {
+          const Icon = statusIcons[key] ?? ClipboardList;
           const count = stats.statusCounts[key] || 0;
           return (
             <Card key={key}>
               <CardContent className="pt-4 text-center">
-                <Icon className="h-5 w-5 mx-auto mb-2 text-gray-400" />
+                <Icon className="mx-auto mb-2 h-5 w-5 text-gray-400" />
                 <div className="text-xl font-bold">{count}</div>
-                <p className="text-xs text-gray-500">{config.label}</p>
+                <p className="text-xs text-gray-500">{label}</p>
               </CardContent>
             </Card>
           );
@@ -93,28 +104,33 @@ export default async function DashboardPage() {
         </CardHeader>
         <CardContent>
           {stats.recentReceptions.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No hay recepciones aún</p>
+            <div className="flex flex-col items-center gap-2 py-8 text-gray-500">
+              <ClipboardList className="h-8 w-8 text-gray-300" />
+              <p className="font-medium">No hay recepciones aún</p>
+              <p className="text-sm">Crea la primera desde la sección Recepciones.</p>
+            </div>
           ) : (
             <div className="space-y-3">
               {stats.recentReceptions.map((r) => {
-                const config = statusConfig[r.status] || statusConfig.RECEIVED;
+                const statusLabel = STATUS_LABELS[r.status] ?? r.status;
+                const statusColor = STATUS_COLORS[r.status] ?? STATUS_COLORS.RECEIVED;
                 return (
                   <Link
                     key={r.id}
                     href={`/receptions/${r.id}`}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 border transition-colors"
+                    className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-gray-50"
                   >
                     <div className="flex items-center gap-4">
                       <span className="font-mono text-sm font-medium">{r.folio}</span>
                       <div>
                         <p className="text-sm font-medium">{r.client.name}</p>
                         <p className="text-xs text-gray-500">
-                          {r.brand} {r.model}
+                          {BRAND_LABELS[r.brand] ?? r.brand} {r.model}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Badge className={config.color}>{config.label}</Badge>
+                      <Badge className={statusColor}>{statusLabel}</Badge>
                       <span className="text-xs text-gray-400">
                         {new Date(r.createdAt).toLocaleDateString("es-MX")}
                       </span>

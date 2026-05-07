@@ -1,9 +1,10 @@
-import 'dotenv/config'
-import { PrismaClient } from "../../generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-const prisma = new PrismaClient({ adapter });
+import { prisma } from "@/lib/prisma";
+import {
+  Brand,
+  PaymentMethod,
+  ReceptionStatus,
+  UserRole,
+} from "../../generated/prisma/client";
 
 async function getNextFolio(): Promise<string> {
   const latest = await prisma.reception.findFirst({
@@ -11,20 +12,21 @@ async function getNextFolio(): Promise<string> {
     select: { folio: true },
   });
 
-  if (latest) {
-    const num = parseInt(latest.folio.split("-")[1], 10) + 1;
-    return `REC-${String(num).padStart(6, "0")}`;
-  }
-  return "REC-000001";
+  if (!latest) return "REC-000001";
+
+  const parsed = parseInt(latest.folio.split("-")[1] ?? "", 10);
+  const num = Number.isFinite(parsed) ? parsed + 1 : 1;
+  return `REC-${String(num).padStart(6, "0")}`;
 }
 
 function generateTrackingToken(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let token = "tok_";
-  for (let i = 0; i < 16; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return token;
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  const token = Array.from(bytes)
+    .map((b) => b.toString(36).padStart(2, "0"))
+    .join("")
+    .slice(0, 20);
+  return `tok_${token}`;
 }
 
 export async function createReception(data: {
@@ -47,7 +49,7 @@ export async function createReception(data: {
       trackingToken,
       clientId: data.clientId,
       technicianId: data.technicianId || null,
-      brand: data.brand as any,
+      brand: data.brand as Brand,
       model: data.model,
       color: data.color,
       imei: data.imei || null,
@@ -100,21 +102,26 @@ export async function getReceptionById(id: string) {
   });
 }
 
+/**
+ * Public tracking lookup — only safe-to-expose fields are selected.
+ * Does NOT include: id, internal user/technician info, costs, payments,
+ * signature data, IMEI, accessories, problem description, or status notes.
+ */
 export async function getReceptionByTrackingToken(token: string) {
   return prisma.reception.findUnique({
     where: { trackingToken: token },
     select: {
-      id: true,
       folio: true,
-      trackingToken: true,
       brand: true,
       model: true,
       color: true,
       status: true,
       createdAt: true,
-      updatedAt: true,
-      client: { select: { name: true, phone: true } },
-      statusHistory: { orderBy: { createdAt: "asc" }, select: { id: true, status: true, notes: true, createdAt: true } },
+      client: { select: { name: true } },
+      statusHistory: {
+        orderBy: { createdAt: "asc" },
+        select: { id: true, status: true, createdAt: true },
+      },
     },
   });
 }
@@ -123,10 +130,10 @@ export async function updateReceptionStatus(data: { receptionId: string; status:
   return prisma.reception.update({
     where: { id: data.receptionId },
     data: {
-      status: data.status as any,
+      status: data.status as ReceptionStatus,
       statusHistory: {
         create: {
-          status: data.status as any,
+          status: data.status as ReceptionStatus,
           notes: data.notes || null,
         },
       },
@@ -149,7 +156,7 @@ export async function createPayment(data: { receptionId: string; amount: number;
     data: {
       receptionId: data.receptionId,
       amount: data.amount,
-      method: data.method as any,
+      method: data.method as PaymentMethod,
       concept: data.concept,
       reference: data.reference || null,
       status: "PAID",
@@ -201,7 +208,14 @@ export async function getReceptionStats() {
 
 export async function getTechnicians() {
   return prisma.user.findMany({
-    where: { role: { in: ["TECHNICIAN", "EMPLOYEE"] as any } },
+    where: { role: { in: [UserRole.TECHNICIAN, UserRole.EMPLOYEE] } },
+    orderBy: { name: "asc" },
     select: { id: true, name: true, email: true, role: true },
   });
 }
+
+export type Technician = Awaited<ReturnType<typeof getTechnicians>>[number];
+export type ReceptionDetail = NonNullable<
+  Awaited<ReturnType<typeof getReceptionById>>
+>;
+export type ReceptionPayment = ReceptionDetail["payments"][number];

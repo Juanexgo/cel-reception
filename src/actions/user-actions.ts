@@ -10,8 +10,11 @@ export async function getUsersAction() {
   return getAllUsers();
 }
 
-export async function createUserAction(prevState: any, formData: FormData) {
-  await requireAuth();
+export async function createUserAction(_prevState: unknown, formData: FormData) {
+  const session = await requireAuth();
+  if (session.role !== "ADMIN") {
+    return { error: "Solo un administrador puede crear usuarios" };
+  }
 
   const validated = userSchema.safeParse({
     name: formData.get("name"),
@@ -28,8 +31,9 @@ export async function createUserAction(prevState: any, formData: FormData) {
     await createUserService(validated.data);
     revalidatePath("/users");
     return { success: true };
-  } catch (error: any) {
-    if (error.code === "P2002") {
+  } catch (error: unknown) {
+    const code = (error as { code?: string }).code;
+    if (code === "P2002") {
       return { error: "Ya existe un usuario con ese email" };
     }
     return { error: "Error al crear el usuario" };

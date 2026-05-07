@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useEffect } from "react";
+import { useActionState, useState } from "react";
 import { createReceptionAction } from "@/actions/reception-actions";
 import { createClientAction, searchClientsAction } from "@/actions/client-actions";
 import { Button } from "@/components/ui/button";
@@ -11,31 +11,57 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Plus, Search } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Plus, Search } from "lucide-react";
 import Link from "next/link";
+import type { Technician } from "@/repositories/reception-repository";
+import { BRAND_LABELS } from "@/lib/constants";
 
-const brands = [
-  "APPLE", "SAMSUNG", "HUAWEI", "XIAOMI", "OPPO", "VIVO",
-  "MOTOROLA", "LG", "GOOGLE", "ONEPLUS", "NOKIA", "SONY", "ZTE", "OTHER",
-];
+type ClientSummary = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+};
 
-export function NewReceptionForm({ technicians }: { technicians: any[] }) {
+const brands = Object.entries(BRAND_LABELS).map(([value, label]) => ({
+  value,
+  label,
+}));
+
+export function NewReceptionForm({
+  technicians,
+}: {
+  technicians: Technician[];
+}) {
   const [state, formAction, isPending] = useActionState(createReceptionAction, null);
-  const [selectedClientId, setSelectedClientId] = useState("");
+  const [selectedClient, setSelectedClient] = useState<ClientSummary | null>(null);
   const [showNewClient, setShowNewClient] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [newClientState, newClientFormAction, newClientPending] = useActionState(
-    createClientAction,
-    null
-  );
+  const [searchResults, setSearchResults] = useState<ClientSummary[]>([]);
 
-  useEffect(() => {
-    if (newClientState && "success" in newClientState && newClientState.success && "clientId" in newClientState) {
-      setSelectedClientId(newClientState.clientId);
+  // Wrap createClientAction so we can react to its result without a useEffect.
+  const handleCreateClient = async (
+    prev: Awaited<ReturnType<typeof createClientAction>> | null,
+    formData: FormData,
+  ) => {
+    const result = await createClientAction(prev, formData);
+    if (result && "success" in result && result.success) {
+      setSelectedClient({
+        id: result.clientId,
+        name: (formData.get("name") as string) ?? "",
+        phone: (formData.get("phone") as string) ?? "",
+        email: (formData.get("email") as string) || null,
+      });
+      setSearchQuery((formData.get("name") as string) ?? "");
       setShowNewClient(false);
     }
-  }, [newClientState]);
+    return result;
+  };
+
+  const [newClientState, newClientFormAction, newClientPending] = useActionState(
+    handleCreateClient,
+    null
+  );
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
@@ -50,12 +76,12 @@ export function NewReceptionForm({ technicians }: { technicians: any[] }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/receptions">
-          <Button variant="outline" size="sm">
+        <Button asChild variant="outline" size="sm">
+          <Link href="/receptions">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver
-          </Button>
-        </Link>
+          </Link>
+        </Button>
         <div>
           <h1 className="text-2xl font-bold">Nueva Recepción</h1>
           <p className="text-gray-500">Crear orden de servicio</p>
@@ -87,7 +113,7 @@ export function NewReceptionForm({ technicians }: { technicians: any[] }) {
                       type="button"
                       className="w-full text-left px-4 py-2 hover:bg-gray-50 border-b last:border-b-0"
                       onClick={() => {
-                        setSelectedClientId(client.id);
+                        setSelectedClient(client);
                         setSearchResults([]);
                         setSearchQuery(client.name);
                       }}
@@ -99,7 +125,24 @@ export function NewReceptionForm({ technicians }: { technicians: any[] }) {
                 </div>
               )}
             </div>
-            <input type="hidden" name="clientId" value={selectedClientId} />
+            {selectedClient && (
+              <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm dark:border-green-900/50 dark:bg-green-950/30">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="font-medium">{selectedClient.name}</span>
+                <span className="text-gray-500">· {selectedClient.phone}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedClient(null);
+                    setSearchQuery("");
+                  }}
+                  className="ml-auto text-xs text-gray-500 underline hover:text-gray-700"
+                >
+                  cambiar
+                </button>
+              </div>
+            )}
+            <input type="hidden" name="clientId" value={selectedClient?.id ?? ""} />
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-500">O</span>
               <Dialog open={showNewClient} onOpenChange={setShowNewClient}>
@@ -115,19 +158,24 @@ export function NewReceptionForm({ technicians }: { technicians: any[] }) {
                   </DialogHeader>
                   <form action={newClientFormAction} className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Nombre</Label>
-                      <Input name="name" required />
+                      <Label htmlFor="dlg-client-name">Nombre</Label>
+                      <Input id="dlg-client-name" name="name" required />
                     </div>
                     <div className="space-y-2">
-                      <Label>Teléfono</Label>
-                      <Input name="phone" required />
+                      <Label htmlFor="dlg-client-phone">Teléfono</Label>
+                      <Input id="dlg-client-phone" name="phone" required />
                     </div>
                     <div className="space-y-2">
-                      <Label>Email (opcional)</Label>
-                      <Input name="email" type="email" />
+                      <Label htmlFor="dlg-client-email">Email (opcional)</Label>
+                      <Input id="dlg-client-email" name="email" type="email" />
                     </div>
-                    <Button type="submit" disabled={newClientPending}>
-                      Crear Cliente
+                    {newClientState && "error" in newClientState && newClientState.error && (
+                      <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                        {newClientState.error}
+                      </div>
+                    )}
+                    <Button type="submit" disabled={newClientPending} className="w-full">
+                      {newClientPending ? "Creando..." : "Crear Cliente"}
                     </Button>
                   </form>
                 </DialogContent>
@@ -145,13 +193,13 @@ export function NewReceptionForm({ technicians }: { technicians: any[] }) {
               <div className="space-y-2">
                 <Label>Marca</Label>
                 <Select name="brand" required>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Seleccionar marca" />
                   </SelectTrigger>
                   <SelectContent>
                     {brands.map((b) => (
-                      <SelectItem key={b} value={b}>
-                        {b.charAt(0) + b.slice(1).toLowerCase()}
+                      <SelectItem key={b.value} value={b.value}>
+                        {b.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -200,12 +248,12 @@ export function NewReceptionForm({ technicians }: { technicians: any[] }) {
             <Separator />
             <div className="space-y-2">
               <Label>Técnico Asignado (opcional)</Label>
-              <Select name="technicianId">
-                <SelectTrigger>
+              <Select name="technicianId" defaultValue="none">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Sin asignar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin asignar</SelectItem>
+                  <SelectItem value="none">Sin asignar</SelectItem>
                   {technicians.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.name}

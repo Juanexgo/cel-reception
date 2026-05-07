@@ -12,16 +12,7 @@ import { QRCode } from "@/components/receptions/qr-code";
 import { CopyButton } from "@/components/receptions/copy-button";
 import { Printer, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-
-const statusConfig: Record<string, { label: string; color: string }> = {
-  RECEIVED: { label: "Recibido", color: "bg-blue-100 text-blue-800" },
-  DIAGNOSING: { label: "Diagnóstico", color: "bg-yellow-100 text-yellow-800" },
-  WAITING_PARTS: { label: "Esperando piezas", color: "bg-orange-100 text-orange-800" },
-  REPAIRING: { label: "En reparación", color: "bg-purple-100 text-purple-800" },
-  READY: { label: "Listo", color: "bg-green-100 text-green-800" },
-  DELIVERED: { label: "Entregado", color: "bg-slate-100 text-slate-800" },
-  CANCELLED: { label: "Cancelado", color: "bg-red-100 text-red-800" },
-};
+import { BRAND_LABELS, STATUS_COLORS, STATUS_LABELS } from "@/lib/constants";
 
 export default async function ReceptionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,7 +20,8 @@ export default async function ReceptionDetailPage({ params }: { params: Promise<
 
   if (!reception) notFound();
 
-  const status = statusConfig[reception.status] || statusConfig.RECEIVED;
+  const statusLabel = STATUS_LABELS[reception.status] ?? reception.status;
+  const statusColor = STATUS_COLORS[reception.status] ?? STATUS_COLORS.RECEIVED;
   const totalPaid = reception.payments.reduce((sum, p) => sum + p.amount, 0);
   const trackingUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/track/${reception.trackingToken}`;
 
@@ -37,16 +29,16 @@ export default async function ReceptionDetailPage({ params }: { params: Promise<
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/receptions">
-            <Button variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/receptions">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold font-mono">{reception.folio}</h1>
-              <Badge className={status.color}>{status.label}</Badge>
+              <Badge className={statusColor}>{statusLabel}</Badge>
             </div>
             <p className="text-gray-500">
               {new Date(reception.createdAt).toLocaleString("es-MX")}
@@ -54,12 +46,12 @@ export default async function ReceptionDetailPage({ params }: { params: Promise<
           </div>
         </div>
         <div className="flex gap-2">
-          <Link href={`/receptions/${reception.id}/print`} target="_blank">
-            <Button variant="outline">
+          <Button asChild variant="outline">
+            <Link href={`/receptions/${reception.id}/print`} target="_blank">
               <Printer className="h-4 w-4 mr-2" />
               Imprimir
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -106,7 +98,7 @@ export default async function ReceptionDetailPage({ params }: { params: Promise<
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <p className="text-sm text-gray-500">Marca</p>
-                      <p className="font-medium">{reception.brand}</p>
+                      <p className="font-medium">{BRAND_LABELS[reception.brand] ?? reception.brand}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Modelo</p>
@@ -144,13 +136,17 @@ export default async function ReceptionDetailPage({ params }: { params: Promise<
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Tracking QR</CardTitle>
+                  <CardTitle>Tracking público (QR)</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-gray-500">
+                    Comparta este código con el cliente para que consulte el
+                    estado de su reparación sin necesidad de iniciar sesión.
+                  </p>
                   <QRCode value={trackingUrl} />
-                  <div className="mt-3 flex items-center gap-2">
-                    <p className="text-xs text-gray-500 break-all flex-1">{trackingUrl}</p>
-                  <CopyButton text={trackingUrl} />
+                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
+                    <p className="flex-1 break-all font-mono text-xs">{trackingUrl}</p>
+                    <CopyButton text={trackingUrl} label="Copiar enlace" />
                   </div>
                 </CardContent>
               </Card>
@@ -172,8 +168,8 @@ export default async function ReceptionDetailPage({ params }: { params: Promise<
                           )}
                         </div>
                         <div className="pb-4">
-                          <Badge className={statusConfig[entry.status]?.color || ""}>
-                            {statusConfig[entry.status]?.label || entry.status}
+                          <Badge className={STATUS_COLORS[entry.status] ?? ""}>
+                            {STATUS_LABELS[entry.status] ?? entry.status}
                           </Badge>
                           {entry.notes && <p className="text-sm text-gray-500 mt-1">{entry.notes}</p>}
                           <p className="text-xs text-gray-400 mt-1">

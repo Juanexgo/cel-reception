@@ -1,20 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { createPaymentAction } from "@/actions/client-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import type { ReceptionPayment } from "@/repositories/reception-repository";
+import { PAYMENT_METHOD_LABELS } from "@/lib/constants";
+import { toast } from "sonner";
 
-const paymentMethods = [
-  { value: "CASH", label: "Efectivo" },
-  { value: "CARD", label: "Tarjeta" },
-  { value: "TRANSFER", label: "Transferencia" },
-  { value: "OTHER", label: "Otro" },
-];
+const paymentMethods = Object.entries(PAYMENT_METHOD_LABELS).map(
+  ([value, label]) => ({ value, label }),
+);
 
 export function PaymentSection({
   receptionId,
@@ -23,11 +22,27 @@ export function PaymentSection({
   totalPaid,
 }: {
   receptionId: string;
-  payments: any[];
+  payments: ReceptionPayment[];
   totalCost: number;
   totalPaid: number;
 }) {
-  const [state, formAction, isPending] = useActionState(createPaymentAction, null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const handleAction = async (
+    prev: Awaited<ReturnType<typeof createPaymentAction>> | null,
+    formData: FormData,
+  ) => {
+    const result = await createPaymentAction(prev, formData);
+    if (result && "success" in result && result.success) {
+      toast.success("Pago registrado");
+      formRef.current?.reset();
+    } else if (result && "error" in result && result.error) {
+      toast.error(result.error);
+    }
+    return result;
+  };
+
+  const [state, formAction, isPending] = useActionState(handleAction, null);
 
   return (
     <div className="space-y-4">
@@ -58,7 +73,7 @@ export function PaymentSection({
           <CardTitle>Registrar Pago</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={formAction} className="space-y-4">
+          <form ref={formRef} action={formAction} className="space-y-4">
             <input type="hidden" name="receptionId" value={receptionId} />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -68,7 +83,7 @@ export function PaymentSection({
               <div className="space-y-2">
                 <Label>Método</Label>
                 <Select name="method" required>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Seleccionar" />
                   </SelectTrigger>
                   <SelectContent>
@@ -89,8 +104,11 @@ export function PaymentSection({
               <Label>Referencia (opcional)</Label>
               <Input name="reference" placeholder="No. de transferencia, etc." />
             </div>
-            {state?.error && <div className="text-sm text-red-500">{state.error}</div>}
-            {state?.success && <div className="text-sm text-green-600">Pago registrado</div>}
+            {state && "error" in state && state.error && (
+              <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                {state.error}
+              </div>
+            )}
             <Button type="submit" disabled={isPending} className="w-full">
               {isPending ? "Registrando..." : "Registrar Pago"}
             </Button>

@@ -1,10 +1,5 @@
-import 'dotenv/config'
-import { PrismaClient } from "../../generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { cookies } from "next/headers";
-
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-const prisma = new PrismaClient({ adapter });
+import { prisma } from "@/lib/prisma";
 
 export interface SessionUser {
   id: string;
@@ -14,6 +9,16 @@ export interface SessionUser {
 }
 
 const SESSION_COOKIE = "cr_session";
+
+function getSessionSecret(): string {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret || secret.length < 16) {
+    throw new Error(
+      "NEXTAUTH_SECRET must be set to a strong random string (at least 16 chars) in your .env file."
+    );
+  }
+  return secret;
+}
 
 export async function createSession(user: { id: string; email: string; name: string; role: string }) {
   const payload = Buffer.from(JSON.stringify(user)).toString("base64");
@@ -60,7 +65,7 @@ export async function requireAuth(): Promise<SessionUser> {
 }
 
 async function signCookie(value: string): Promise<string> {
-  const secret = process.env.NEXTAUTH_SECRET || "fallback-secret";
+  const secret = getSessionSecret();
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
@@ -78,7 +83,7 @@ async function verifyCookie(signed: string): Promise<string> {
   const parts = signed.split(".");
   const sigBase64 = parts.pop();
   const value = parts.join(".");
-  const secret = process.env.NEXTAUTH_SECRET || "fallback-secret";
+  const secret = getSessionSecret();
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",

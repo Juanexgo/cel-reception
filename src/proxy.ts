@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 const protectedPaths = ["/dashboard", "/receptions", "/clients", "/users"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const session = request.cookies.get("cr_session");
   const isProtected = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)

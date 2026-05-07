@@ -11,18 +11,31 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function NewClientPage() {
-  const [state, formAction, isPending] = useActionState(createClientAction, null);
   const router = useRouter();
+
+  const handleAction = async (
+    prev: Awaited<ReturnType<typeof createClientAction>> | null,
+    formData: FormData,
+  ) => {
+    const result = await createClientAction(prev, formData);
+    if (result && "success" in result && result.success) {
+      router.push("/clients");
+      router.refresh();
+    }
+    return result;
+  };
+
+  const [state, formAction, isPending] = useActionState(handleAction, null);
 
   return (
     <div className="space-y-6 max-w-lg">
       <div className="flex items-center gap-4">
-        <Link href="/clients">
-          <Button variant="outline" size="sm">
+        <Button asChild variant="outline" size="sm">
+          <Link href="/clients">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver
-          </Button>
-        </Link>
+          </Link>
+        </Button>
         <div>
           <h1 className="text-2xl font-bold">Nuevo Cliente</h1>
           <p className="text-gray-500">Registrar un nuevo cliente</p>
@@ -34,16 +47,7 @@ export default function NewClientPage() {
           <CardTitle>Datos del Cliente</CardTitle>
         </CardHeader>
         <CardContent>
-          <form
-            action={(formData) => {
-              createClientAction(null, formData).then((result: any) => {
-                if (result?.success) {
-                  router.push("/clients");
-                }
-              });
-            }}
-            className="space-y-4"
-          >
+          <form action={formAction} className="space-y-4">
             <div className="space-y-2">
               <Label>Nombre</Label>
               <Input name="name" required placeholder="Nombre completo" />
@@ -56,7 +60,11 @@ export default function NewClientPage() {
               <Label>Email (opcional)</Label>
               <Input name="email" type="email" placeholder="correo@ejemplo.com" />
             </div>
-            {state?.error && <div className="text-sm text-red-500">{state.error}</div>}
+            {state && "error" in state && state.error && (
+              <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                {state.error}
+              </div>
+            )}
             <Button type="submit" disabled={isPending} className="w-full">
               {isPending ? "Creando..." : "Crear Cliente"}
             </Button>

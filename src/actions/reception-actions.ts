@@ -35,14 +35,28 @@ export async function createReceptionAction(_prevState: unknown, formData: FormD
     return { error: validated.error.issues[0]?.message || "Datos inválidos" };
   }
 
+  // The technicianId hidden field carries the literal "none" when no technician
+  // is assigned (Base UI Select disallows empty-string values).
+  const data = {
+    ...validated.data,
+    technicianId:
+      validated.data.technicianId && validated.data.technicianId !== "none"
+        ? validated.data.technicianId
+        : undefined,
+  };
+
+  let reception;
   try {
-    const reception = await createReception(validated.data);
-    revalidatePath("/dashboard");
-    revalidatePath("/receptions");
-    redirect(`/receptions/${reception.id}`);
-  } catch (error: any) {
-    return { error: error.message || "Error al crear la recepción" };
+    reception = await createReception(data);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Error al crear la recepción";
+    return { error: message };
   }
+
+  // redirect() throws NEXT_REDIRECT — must be outside try/catch so it propagates.
+  revalidatePath("/dashboard");
+  revalidatePath("/receptions");
+  redirect(`/receptions/${reception.id}`);
 }
 
 export async function getReceptionsAction(search?: string, statusFilter?: string) {
@@ -55,7 +69,7 @@ export async function getReceptionAction(id: string) {
   return getReceptionById(id);
 }
 
-export async function updateStatusAction(prevState: any, formData: FormData) {
+export async function updateStatusAction(_prevState: unknown, formData: FormData) {
   await requireAuth();
 
   const validated = statusUpdateSchema.safeParse({
@@ -71,10 +85,24 @@ export async function updateStatusAction(prevState: any, formData: FormData) {
   const reception = await getReceptionById(validated.data.receptionId);
   if (!reception) return { error: "Recepción no encontrada" };
 
-  await updateReceptionStatus(validated.data);
+  try {
+    await updateReceptionStatus(validated.data);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Error al actualizar estado";
+    return { error: message };
+  }
 
+  // Best-effort SMS notification — never fail the status update if SMS errors.
   if (validated.data.status === "READY" && reception.client.phone) {
-    await notifyReadyForPickup(reception.client.phone, reception.folio, `${reception.brand} ${reception.model}`);
+    try {
+      await notifyReadyForPickup(
+        reception.client.phone,
+        reception.folio,
+        `${reception.brand} ${reception.model}`
+      );
+    } catch (smsError) {
+      console.error("[SMS] notify failed (non-fatal):", smsError);
+    }
   }
 
   revalidatePath(`/receptions/${validated.data.receptionId}`);
@@ -83,7 +111,7 @@ export async function updateStatusAction(prevState: any, formData: FormData) {
   return { success: true };
 }
 
-export async function saveSignatureAction(prevState: any, formData: FormData) {
+export async function saveSignatureAction(_prevState: unknown, formData: FormData) {
   await requireAuth();
 
   const validated = signatureSchema.safeParse({

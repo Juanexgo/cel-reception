@@ -2,7 +2,7 @@
 
 import { loginSchema } from "@/schemas";
 import { getUserByEmail, verifyPassword } from "@/repositories/user-repository";
-import { createSession } from "@/lib/auth";
+import { createSession, logout } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export async function loginAction(_prevState: unknown, formData: FormData) {
@@ -36,11 +36,11 @@ export async function loginAction(_prevState: unknown, formData: FormData) {
     role: user.role,
   });
 
-  return { success: true };
+  // redirect() throws — must be the last statement.
+  redirect("/dashboard");
 }
 
 export async function logoutAction() {
-  const { logout } = await import("@/lib/auth");
   await logout();
   redirect("/login");
 }

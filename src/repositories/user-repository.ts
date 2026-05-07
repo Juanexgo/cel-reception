@@ -1,10 +1,6 @@
-import 'dotenv/config'
-import { PrismaClient } from "../../generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
-
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-const prisma = new PrismaClient({ adapter });
+import { prisma } from "@/lib/prisma";
+import { UserRole } from "../../generated/prisma/client";
 
 export async function getUserByEmail(email: string) {
   return prisma.user.findUnique({ where: { email } });
@@ -28,7 +24,7 @@ export async function createUserService(data: { name: string; email: string; pas
       name: data.name,
       email: data.email,
       password: hashedPassword,
-      role: data.role as any,
+      role: data.role as UserRole,
     },
   });
 }
