@@ -10,11 +10,12 @@ import {
   saveSignature,
   getReceptionStats,
   getTechnicians,
+  softDeleteReception,
 } from "@/repositories/reception-repository";
 import { notifyReadyForPickup } from "@/services/sms";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAuth } from "@/lib/auth";
+import { requireAdmin, requireAuth } from "@/lib/auth";
 
 export async function createReceptionAction(_prevState: unknown, formData: FormData) {
   await requireAuth();
@@ -140,4 +141,33 @@ export async function getTechniciansAction() {
 
 export async function getPublicTrackingAction(token: string) {
   return getReceptionByTrackingToken(token);
+}
+
+export async function deleteReceptionAction(receptionId: string) {
+  try {
+    await requireAdmin();
+  } catch {
+    return { error: "No tienes permiso para eliminar recepciones" };
+  }
+
+  if (!receptionId || typeof receptionId !== "string") {
+    return { error: "Identificador inválido" };
+  }
+
+  const existing = await getReceptionById(receptionId);
+  if (!existing) {
+    return { error: "Recepción no encontrada" };
+  }
+
+  try {
+    await softDeleteReception(receptionId);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Error al eliminar la recepción";
+    return { error: message };
+  }
+
+  revalidatePath("/receptions");
+  revalidatePath("/dashboard");
+  revalidatePath(`/receptions/${receptionId}`);
+  return { success: true };
 }

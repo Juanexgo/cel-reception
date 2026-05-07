@@ -70,3 +70,18 @@ export const userSchema = z.object({
 });
 
 export type UserInput = z.infer<typeof userSchema>;
+
+// Edit form: password is optional and only updates when a non-empty value is provided.
+export const userUpdateSchema = z.object({
+  id: z.string().min(1, "Identificador requerido"),
+  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+  email: z.string().email("Email inválido"),
+  role: z.enum(["ADMIN", "EMPLOYEE", "TECHNICIAN"]),
+  isActive: z.boolean(),
+  password: z
+    .string()
+    .min(6, "La contraseña debe tener al menos 6 caracteres")
+    .optional(),
+});
+
+export type UserUpdateInput = z.infer<typeof userUpdateSchema>;

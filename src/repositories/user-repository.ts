@@ -37,6 +37,55 @@ export async function updateUserPassword(userId: string, password: string) {
   });
 }
 
+export async function updateUserService(data: {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  password?: string;
+}) {
+  const updateData: {
+    name: string;
+    email: string;
+    role: UserRole;
+    isActive: boolean;
+    password?: string;
+  } = {
+    name: data.name,
+    email: data.email,
+    role: data.role as UserRole,
+    isActive: data.isActive,
+  };
+
+  if (data.password) {
+    updateData.password = await bcrypt.hash(data.password, 10);
+  }
+
+  return prisma.user.update({
+    where: { id: data.id },
+    data: updateData,
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+    },
+  });
+}
+
+export async function countActiveAdmins(excludeUserId?: string) {
+  return prisma.user.count({
+    where: {
+      role: UserRole.ADMIN,
+      isActive: true,
+      ...(excludeUserId ? { NOT: { id: excludeUserId } } : {}),
+    },
+  });
+}
+
 export async function verifyPassword(user: { password: string }, password: string) {
   return bcrypt.compare(password, user.password);
 }

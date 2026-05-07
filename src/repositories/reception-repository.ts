@@ -65,7 +65,7 @@ export async function createReception(data: {
 }
 
 export async function getAllReceptions(search?: string, statusFilter?: string) {
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { deletedAt: null };
 
   if (search) {
     where.OR = [
@@ -91,8 +91,9 @@ export async function getAllReceptions(search?: string, statusFilter?: string) {
 }
 
 export async function getReceptionById(id: string) {
-  return prisma.reception.findUnique({
-    where: { id },
+  // Soft-deleted receptions are treated as not-found everywhere.
+  return prisma.reception.findFirst({
+    where: { id, deletedAt: null },
     include: {
       client: true,
       technician: { select: { name: true } },
@@ -102,14 +103,21 @@ export async function getReceptionById(id: string) {
   });
 }
 
+export async function softDeleteReception(id: string) {
+  return prisma.reception.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  });
+}
+
 /**
  * Public tracking lookup — only safe-to-expose fields are selected.
  * Does NOT include: id, internal user/technician info, costs, payments,
  * signature data, IMEI, accessories, problem description, or status notes.
  */
 export async function getReceptionByTrackingToken(token: string) {
-  return prisma.reception.findUnique({
-    where: { trackingToken: token },
+  return prisma.reception.findFirst({
+    where: { trackingToken: token, deletedAt: null },
     select: {
       folio: true,
       brand: true,
@@ -171,13 +179,17 @@ export async function getReceptionStats() {
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   const [total, todayCount, byStatus, recentReceptions, payments] = await Promise.all([
-    prisma.reception.count(),
-    prisma.reception.count({ where: { createdAt: { gte: today, lt: tomorrow } } }),
+    prisma.reception.count({ where: { deletedAt: null } }),
+    prisma.reception.count({
+      where: { deletedAt: null, createdAt: { gte: today, lt: tomorrow } },
+    }),
     prisma.reception.groupBy({
       by: ["status"],
+      where: { deletedAt: null },
       _count: { status: true },
     }),
     prisma.reception.findMany({
+      where: { deletedAt: null },
       take: 5,
       orderBy: { createdAt: "desc" },
       include: {
@@ -186,6 +198,7 @@ export async function getReceptionStats() {
       },
     }),
     prisma.payment.aggregate({
+      where: { reception: { deletedAt: null } },
       _sum: { amount: true },
       _count: { amount: true },
     }),

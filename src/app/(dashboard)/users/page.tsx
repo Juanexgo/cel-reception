@@ -10,6 +10,8 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NewUserDialog } from "@/components/users/new-user-dialog";
+import { EditUserDialog } from "@/components/users/edit-user-dialog";
+import { getSession } from "@/lib/auth";
 
 const roleConfig: Record<string, { label: string; color: string }> = {
   ADMIN: { label: "Administrador", color: "bg-red-100 text-red-800" },
@@ -18,7 +20,8 @@ const roleConfig: Record<string, { label: string; color: string }> = {
 };
 
 export default async function UsersPage() {
-  const users = await getUsersAction();
+  const [users, session] = await Promise.all([getUsersAction(), getSession()]);
+  const isAdmin = session?.role === "ADMIN";
 
   return (
     <div className="space-y-6">
@@ -27,7 +30,7 @@ export default async function UsersPage() {
           <h1 className="text-2xl font-bold">Usuarios</h1>
           <p className="text-gray-500">Gestión de usuarios y técnicos</p>
         </div>
-        <NewUserDialog />
+        {isAdmin && <NewUserDialog />}
       </div>
 
       <Card>
@@ -39,12 +42,16 @@ export default async function UsersPage() {
               <TableHead>Rol</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>Fecha</TableHead>
+              {isAdmin && <TableHead className="text-right">Acciones</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                <TableCell
+                  colSpan={isAdmin ? 6 : 5}
+                  className="text-center text-gray-500 py-8"
+                >
                   No hay usuarios. Cree el primero con el botón de arriba.
                 </TableCell>
               </TableRow>
@@ -72,6 +79,11 @@ export default async function UsersPage() {
                     <TableCell>
                       {new Date(user.createdAt).toLocaleDateString("es-MX")}
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        <EditUserDialog user={user} />
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })

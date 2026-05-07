@@ -94,8 +94,11 @@ model Reception {
   signatureDate   DateTime?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
   statusHistory   StatusHistory[]
   payments        Payment[]
+
+  @@index([deletedAt])
 }
 
 model StatusHistory {

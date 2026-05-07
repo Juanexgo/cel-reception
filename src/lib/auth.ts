@@ -64,6 +64,14 @@ export async function requireAuth(): Promise<SessionUser> {
   return session;
 }
 
+export async function requireAdmin(): Promise<SessionUser> {
+  const session = await requireAuth();
+  if (session.role !== "ADMIN") {
+    throw new Error("Forbidden");
+  }
+  return session;
+}
+
 async function signCookie(value: string): Promise<string> {
   const secret = getSessionSecret();
   const encoder = new TextEncoder();

@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { ClipboardList, Plus, Search, Printer, Eye } from "lucide-react";
 import { BRAND_LABELS, STATUS_COLORS, STATUS_LABELS } from "@/lib/constants";
+import { DeleteReceptionButton } from "@/components/receptions/delete-reception-button";
+import { getSession } from "@/lib/auth";
 
 export default async function ReceptionsPage({
   searchParams,
@@ -17,7 +19,11 @@ export default async function ReceptionsPage({
   const params = await searchParams;
   const search = params.search || "";
   const statusFilter = params.status || "ALL";
-  const receptions = await getReceptionsAction(search, statusFilter);
+  const [receptions, session] = await Promise.all([
+    getReceptionsAction(search, statusFilter),
+    getSession(),
+  ]);
+  const isAdmin = session?.role === "ADMIN";
 
   return (
     <div className="space-y-6">
@@ -125,6 +131,12 @@ export default async function ReceptionsPage({
                             <Printer className="h-4 w-4" />
                           </Link>
                         </Button>
+                        {isAdmin && (
+                          <DeleteReceptionButton
+                            receptionId={r.id}
+                            folio={r.folio}
+                          />
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
