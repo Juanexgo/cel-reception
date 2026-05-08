@@ -54,66 +54,6 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
-
-Demo users (created by the seed):
-
-| Role        | Email                              | Password      |
-|-------------|------------------------------------|---------------|
-| Admin       | admin@centroservicio.com           | admin123      |
-| Technician  | tecnico@centroservicio.com         | tecnico123    |
-| Employee    | empleado@centroservicio.com        | empleado123   |
-
-> Change these passwords before going to production.
-
-## Environment variables
-
-See `.env.example` for the full list with comments. Required minimum:
-
-| Variable          | Required | Notes |
-|-------------------|----------|-------|
-| `DATABASE_URL`    | yes      | Postgres connection string. For Neon use the **pooled** URL. |
-| `NEXTAUTH_SECRET` | yes      | ≥ 16 chars. `openssl rand -hex 32`. |
-| `NEXTAUTH_URL`    | yes      | Public URL of the deployment (used in printed QR codes). |
-| `SHADOW_DATABASE_URL` | no   | Only for `prisma migrate dev` against a shadow DB locally. |
-| `SMS_PROVIDER_API_KEY` | no  | Leave blank to keep SMS in mock mode. |
-| `TWILIO_*`        | no       | Filled in only if you wire a real provider. |
-
-Never prefix any of these with `NEXT_PUBLIC_*`. They're server-only.
-
-## Prisma commands
-
-| Command | What it does |
-|---|---|
-| `npm run db:generate` | Regenerate the Prisma Client into `generated/prisma`. |
-| `npm run db:push` | Push the schema directly to the DB without a migration file (useful for prototyping). |
-| `npm run db:migrate:deploy` | Apply pending migrations from `prisma/migrations/` (safe for production). |
-| `npm run db:seed` | Seed the demo users + clients + receptions. |
-| `npm run db:setup` | One-shot: generate + push + seed. |
-
-`prisma generate` also runs as a `postinstall` hook so the client is
-always rebuilt against the schema after `npm install`.
-
-## Deploy to Vercel
-
-1. Push this repo to GitHub.
-2. In Vercel, **Import Project** from GitHub.
-3. Before the first deploy, add the env vars under
-   *Settings → Environment Variables*:
-   - `DATABASE_URL` (production Postgres URL — Prisma Postgres / Neon
-     pooled / Supabase pooler / etc.)
-   - `NEXTAUTH_SECRET` (`openssl rand -hex 32`)
-   - `NEXTAUTH_URL` (`https://your-deployment.vercel.app`)
-   - SMS vars only if you've configured a provider.
-4. Click Deploy. Vercel runs `npm install` → `postinstall` →
-   `prisma generate` → `next build`. No extra build settings needed.
-5. After the first successful build, run **once** against the production DB:
-   ```bash
-   DATABASE_URL="<production-url>" npx prisma migrate deploy
-   ```
-   You can do this from your local machine or from a Vercel CLI shell.
-   The seed script is **not** run automatically — invoke it explicitly if
-   you want demo data in production.
-
 ## Project layout
 
 ```
@@ -145,16 +85,6 @@ prisma/
   seed.ts
 scripts/                    One-off verification scripts (run with `npx tsx`)
 ```
-
-## Verification scripts
-
-```bash
-npx tsx scripts/verify-flows.ts             # 45 e2e checks of reception flows
-npx tsx scripts/verify-delete-client.ts     # delete-client flow
-npx tsx scripts/verify-prisma-runtime.ts    # confirms prisma.<model> works
-npx tsx scripts/verify-folio-migration.ts   # post-migration folio sanity
-```
-
 ## License
 
 Proprietary. All rights reserved.
