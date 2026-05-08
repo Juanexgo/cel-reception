@@ -26,10 +26,10 @@ export function StatusUpdateForm({
     formData: FormData,
   ) => {
     const result = await updateStatusAction(prev, formData);
-    if (result && "success" in result && result.success) {
-      toast.success("Estado actualizado");
-    } else if (result && "error" in result && result.error) {
-      toast.error(result.error);
+    if (result?.success) {
+      toast.success(result.message);
+    } else if (result && !result.success) {
+      toast.error(result.message);
     }
     return result;
   };
@@ -58,9 +58,9 @@ export function StatusUpdateForm({
         <Label>Notas (opcional)</Label>
         <Textarea name="notes" placeholder="Agregar nota..." rows={2} />
       </div>
-      {state && "error" in state && state.error && (
+      {state && !state.success && (
         <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400">
-          {state.error}
+          {state.message}
         </div>
       )}
       <Button type="submit" className="w-full" disabled={isPending}>

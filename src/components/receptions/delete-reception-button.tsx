@@ -33,11 +33,11 @@ export function DeleteReceptionButton({
   function handleDelete() {
     startTransition(async () => {
       const result = await deleteReceptionAction(receptionId);
-      if (result && "error" in result && result.error) {
-        toast.error(result.error);
+      if (!result.success) {
+        toast.error(result.message);
         return;
       }
-      toast.success(`Recepción ${folio} eliminada`);
+      toast.success(result.message);
       setOpen(false);
       router.refresh();
     });

@@ -54,11 +54,11 @@ export function SignatureSection({
       formData.append("receptionId", receptionId);
       formData.append("signatureData", dataURL);
       const result = await saveSignatureAction(null, formData);
-      if (result && "error" in result && result.error) {
-        setErrorMsg(result.error);
-        toast.error(result.error);
+      if (result && !result.success) {
+        setErrorMsg(result.message);
+        toast.error(result.message);
       } else {
-        toast.success("Firma guardada");
+        toast.success(result?.message ?? "Firma guardada");
         setRecapturing(false);
         router.refresh();
       }

@@ -52,6 +52,15 @@ enum PaymentStatus {
   PENDING
 }
 
+enum AuditAction {
+  CREATE
+  UPDATE
+  STATUS_CHANGE
+  DELIVER
+  DELETE
+  DELETE_CLIENT
+}
+
 model User {
   id            String        @id @default(cuid())
   email         String        @unique
@@ -62,6 +71,7 @@ model User {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   receptions    Reception[]   @relation("AssignedTechnician")
+  auditLogs     AuditLog[]
 }
 
 model Client {
@@ -71,11 +81,24 @@ model Client {
   email       String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  // Soft-delete: rows with `deletedAt` set are hidden from list/search but
+  // remain referenced by historical receptions, so we never break FK
+  // integrity for completed orders.
+  deletedAt   DateTime?
   receptions  Reception[]
+  auditLogs   AuditLog[]
+
+  @@index([deletedAt])
 }
 
 model Reception {
   id              String          @id @default(cuid())
+  // Sequential numeric ID backed by a Postgres sequence (Reception_folioNumber_seq).
+  // The visible folio is derived as `REC-${folioNumber}` so it grows without
+  // any digit cap (REC-1, REC-10, REC-1000, REC-1000000, ...).
+  // The sequence is owned by this column, so concurrent inserts get unique
+  // numbers atomically — no race conditions.
+  folioNumber     Int             @unique @default(autoincrement())
   folio           String          @unique
   trackingToken   String          @unique
   clientId        String
@@ -97,6 +120,7 @@ model Reception {
   deletedAt       DateTime?
   statusHistory   StatusHistory[]
   payments        Payment[]
+  auditLogs       AuditLog[]
 
   @@index([deletedAt])
 }
@@ -120,4 +144,33 @@ model Payment {
   reference     String?
   status        PaymentStatus   @default(PAID)
   createdAt     DateTime        @default(now())
+}
+
+/// Append-only audit trail. Originally per-reception, now also captures
+/// client-level events (e.g. DELETE_CLIENT). Exactly one of `receptionId`
+/// or `clientId` is set per row; the action enum disambiguates the entity.
+///
+/// - `userId` is nullable + ON DELETE SET NULL so we never lose history when
+///   a user account is removed; we still keep the snapshotted name/email so
+///   the UI can render the actor without joining a possibly-missing row.
+/// - `clientId` uses ON DELETE SET NULL to keep the audit row even if a hard
+///   delete ever bypasses the soft-delete path.
+/// - `metadata` is a free-form JSON blob whose shape varies per `action`
+///   (see audit-repository for the typed builders).
+model AuditLog {
+  id           String      @id @default(cuid())
+  receptionId  String?
+  reception    Reception?  @relation(fields: [receptionId], references: [id], onDelete: Cascade)
+  clientId     String?
+  client       Client?     @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName     String
+  userEmail    String
+  action       AuditAction
+  metadata     Json?
+  createdAt    DateTime    @default(now())
+
+  @@index([receptionId, createdAt])
+  @@index([clientId, createdAt])
 }

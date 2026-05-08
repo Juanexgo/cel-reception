@@ -16,16 +16,18 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button asChild variant="outline" size="sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+        <Button asChild variant="outline" size="sm" className="w-fit">
           <Link href="/clients">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Volver</span>
           </Link>
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold">{client.name}</h1>
-          <p className="text-gray-500">Historial del cliente</p>
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-bold sm:text-2xl">
+            {client.name}
+          </h1>
+          <p className="text-sm text-gray-500">Historial del cliente</p>
         </div>
       </div>
 
@@ -70,46 +72,101 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           {client.receptions.length === 0 ? (
             <p className="text-gray-500 text-center py-4">No hay recepciones</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Folio</TableHead>
-                  <TableHead>Dispositivo</TableHead>
-                  <TableHead>Problema</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Técnico</TableHead>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile: tap-friendly card list, no horizontal scroll. */}
+              <ul className="space-y-3 md:hidden">
                 {client.receptions.map((r) => {
                   const statusLabel = STATUS_LABELS[r.status] ?? r.status;
-                  const statusColor = STATUS_COLORS[r.status] ?? STATUS_COLORS.RECEIVED;
+                  const statusColor =
+                    STATUS_COLORS[r.status] ?? STATUS_COLORS.RECEIVED;
                   return (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-mono font-medium">{r.folio}</TableCell>
-                      <TableCell>
-                        {BRAND_LABELS[r.brand] ?? r.brand} {r.model}
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">{r.problem}</TableCell>
-                      <TableCell>
-                        <Badge className={statusColor}>{statusLabel}</Badge>
-                      </TableCell>
-                      <TableCell>{r.technician?.name || "—"}</TableCell>
-                      <TableCell>
-                        {new Date(r.createdAt).toLocaleDateString("es-MX")}
-                      </TableCell>
-                      <TableCell>
-                        <Button asChild variant="outline" size="sm">
-                          <Link href={`/receptions/${r.id}`}>Ver</Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                    <li key={r.id}>
+                      <Link
+                        href={`/receptions/${r.id}`}
+                        className="flex items-start justify-between gap-3 rounded-lg border bg-background p-3 hover:bg-muted/30"
+                      >
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono text-sm font-semibold">
+                              {r.folio}
+                            </span>
+                            <Badge className={`${statusColor} text-[11px]`}>
+                              {statusLabel}
+                            </Badge>
+                          </div>
+                          <p className="text-sm font-medium">
+                            {BRAND_LABELS[r.brand] ?? r.brand} {r.model}
+                          </p>
+                          <p className="line-clamp-2 text-xs text-gray-500">
+                            {r.problem}
+                          </p>
+                          <p className="text-[11px] text-gray-400">
+                            {new Date(r.createdAt).toLocaleDateString("es-MX")}
+                            {r.technician?.name ? ` · ${r.technician.name}` : ""}
+                          </p>
+                        </div>
+                      </Link>
+                    </li>
                   );
                 })}
-              </TableBody>
-            </Table>
+              </ul>
+
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Folio</TableHead>
+                      <TableHead>Dispositivo</TableHead>
+                      <TableHead className="hidden lg:table-cell">
+                        Problema
+                      </TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="hidden xl:table-cell">
+                        Técnico
+                      </TableHead>
+                      <TableHead className="hidden lg:table-cell">
+                        Fecha
+                      </TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {client.receptions.map((r) => {
+                      const statusLabel = STATUS_LABELS[r.status] ?? r.status;
+                      const statusColor =
+                        STATUS_COLORS[r.status] ?? STATUS_COLORS.RECEIVED;
+                      return (
+                        <TableRow key={r.id}>
+                          <TableCell className="font-mono font-medium">
+                            {r.folio}
+                          </TableCell>
+                          <TableCell>
+                            {BRAND_LABELS[r.brand] ?? r.brand} {r.model}
+                          </TableCell>
+                          <TableCell className="hidden max-w-xs truncate lg:table-cell">
+                            {r.problem}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={statusColor}>{statusLabel}</Badge>
+                          </TableCell>
+                          <TableCell className="hidden xl:table-cell">
+                            {r.technician?.name || "—"}
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            {new Date(r.createdAt).toLocaleDateString("es-MX")}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button asChild variant="outline" size="sm">
+                              <Link href={`/receptions/${r.id}`}>Ver</Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

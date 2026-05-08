@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 
 export interface SessionUser {
   id: string;
@@ -59,7 +60,7 @@ export async function logout() {
 export async function requireAuth(): Promise<SessionUser> {
   const session = await getSession();
   if (!session) {
-    throw new Error("Unauthorized");
+    throw new UnauthorizedError();
   }
   return session;
 }
@@ -67,7 +68,7 @@ export async function requireAuth(): Promise<SessionUser> {
 export async function requireAdmin(): Promise<SessionUser> {
   const session = await requireAuth();
   if (session.role !== "ADMIN") {
-    throw new Error("Forbidden");
+    throw new ForbiddenError();
   }
   return session;
 }

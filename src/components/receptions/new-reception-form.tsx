@@ -45,9 +45,9 @@ export function NewReceptionForm({
     formData: FormData,
   ) => {
     const result = await createClientAction(prev, formData);
-    if (result && "success" in result && result.success) {
+    if (result?.success && result.data?.clientId) {
       setSelectedClient({
-        id: result.clientId,
+        id: result.data.clientId,
         name: (formData.get("name") as string) ?? "",
         phone: (formData.get("phone") as string) ?? "",
         email: (formData.get("email") as string) || null,
@@ -169,9 +169,9 @@ export function NewReceptionForm({
                       <Label htmlFor="dlg-client-email">Email (opcional)</Label>
                       <Input id="dlg-client-email" name="email" type="email" />
                     </div>
-                    {newClientState && "error" in newClientState && newClientState.error && (
+                    {newClientState && !newClientState.success && (
                       <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400">
-                        {newClientState.error}
+                        {newClientState.message}
                       </div>
                     )}
                     <Button type="submit" disabled={newClientPending} className="w-full">
@@ -189,7 +189,7 @@ export function NewReceptionForm({
             <CardTitle>Dispositivo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Marca</Label>
                 <Select name="brand" required>
@@ -210,7 +210,7 @@ export function NewReceptionForm({
                 <Input name="model" placeholder="Ej: iPhone 14 Pro" required />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Color</Label>
                 <Input name="color" placeholder="Ej: Negro" required />
@@ -265,8 +265,8 @@ export function NewReceptionForm({
           </CardContent>
         </Card>
 
-        {state?.error && (
-          <div className="text-sm text-red-500 bg-red-50 p-3 rounded-md">{state.error}</div>
+        {state && !state.success && (
+          <div className="text-sm text-red-500 bg-red-50 p-3 rounded-md">{state.message}</div>
         )}
 
         <Button type="submit" disabled={isPending} className="w-full">

@@ -44,12 +44,12 @@ export function EditUserDialog({ user }: { user: EditableUser }) {
     formData: FormData,
   ) => {
     const result = await updateUserAction(prev, formData);
-    if (result && "success" in result && result.success) {
-      toast.success("Usuario actualizado");
+    if (result?.success) {
+      toast.success(result.message);
       setOpen(false);
       router.refresh();
-    } else if (result && "error" in result && result.error) {
-      toast.error(result.error);
+    } else if (result && !result.success) {
+      toast.error(result.message);
     }
     return result;
   };
@@ -162,9 +162,9 @@ export function EditUserDialog({ user }: { user: EditableUser }) {
             />
           </div>
 
-          {state && "error" in state && state.error && (
+          {state && !state.success && (
             <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400">
-              {state.error}
+              {state.message}
             </div>
           )}
 

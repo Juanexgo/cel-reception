@@ -68,7 +68,7 @@ async function main() {
 
   const r1 = await prisma.reception.create({
     data: {
-      folio: "REC-000001",
+      folio: "REC-1",
       trackingToken: "tok_demo_abc123",
       clientId: client1.id,
       technicianId: tech.id,
@@ -87,7 +87,7 @@ async function main() {
 
   const r2 = await prisma.reception.create({
     data: {
-      folio: "REC-000002",
+      folio: "REC-2",
       trackingToken: "tok_demo_def456",
       clientId: client2.id,
       brand: Brand.SAMSUNG,

@@ -45,3 +45,7 @@ next-env.d.ts
 
 # claude code worktrees / metadata
 .claude/
+
+# Local-only dev/debug artifacts (kept out of source control)
+test-flow.ts
+*.bak

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef } from "react";
-import { createPaymentAction } from "@/actions/client-actions";
+import { createPaymentAction } from "@/actions/reception-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,11 +33,11 @@ export function PaymentSection({
     formData: FormData,
   ) => {
     const result = await createPaymentAction(prev, formData);
-    if (result && "success" in result && result.success) {
-      toast.success("Pago registrado");
+    if (result?.success) {
+      toast.success(result.message);
       formRef.current?.reset();
-    } else if (result && "error" in result && result.error) {
-      toast.error(result.error);
+    } else if (result && !result.success) {
+      toast.error(result.message);
     }
     return result;
   };
@@ -75,7 +75,7 @@ export function PaymentSection({
         <CardContent>
           <form ref={formRef} action={formAction} className="space-y-4">
             <input type="hidden" name="receptionId" value={receptionId} />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Monto</Label>
                 <Input name="amount" type="number" step="0.01" required />
@@ -104,9 +104,9 @@ export function PaymentSection({
               <Label>Referencia (opcional)</Label>
               <Input name="reference" placeholder="No. de transferencia, etc." />
             </div>
-            {state && "error" in state && state.error && (
+            {state && !state.success && (
               <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400">
-                {state.error}
+                {state.message}
               </div>
             )}
             <Button type="submit" disabled={isPending} className="w-full">

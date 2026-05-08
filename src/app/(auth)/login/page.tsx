@@ -47,8 +47,8 @@ export default function LoginPage() {
                 autoComplete="current-password"
               />
             </div>
-            {state?.error && (
-              <div className="text-sm text-red-500 bg-red-50 p-3 rounded-md">{state.error}</div>
+            {state && !state.success && (
+              <div className="text-sm text-red-500 bg-red-50 p-3 rounded-md">{state.message}</div>
             )}
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending ? "Iniciando sesión..." : "Iniciar Sesión"}

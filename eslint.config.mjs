@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Worktree build artifacts and generated Prisma client — never lint these.
+    "**/.next/**",
+    "**/.claude/**",
+    "generated/**",
+    // Standalone debug script with pre-existing issues; fix or remove separately.
+    "test-flow.ts",
   ]),
 ]);
 

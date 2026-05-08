@@ -1,4 +1,7 @@
-import { getReceptionAction } from "@/actions/reception-actions";
+import {
+  getReceptionAction,
+  getReceptionAuditLogAction,
+} from "@/actions/reception-actions";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusUpdateForm } from "@/components/receptions/status-update-form";
 import { PaymentSection } from "@/components/receptions/payment-section";
 import { SignatureSection } from "@/components/receptions/signature-section";
+import { AuditLogSection } from "@/components/receptions/audit-log-section";
 import { QRCode } from "@/components/receptions/qr-code";
 import { CopyButton } from "@/components/receptions/copy-button";
 import { Printer, ArrowLeft } from "lucide-react";
@@ -16,7 +20,12 @@ import { BRAND_LABELS, STATUS_COLORS, STATUS_LABELS } from "@/lib/constants";
 
 export default async function ReceptionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const reception = await getReceptionAction(id);
+  // Audit log fetched in parallel with the main reception so the new tab
+  // doesn't add a render waterfall.
+  const [reception, auditLog] = await Promise.all([
+    getReceptionAction(id),
+    getReceptionAuditLogAction(id),
+  ]);
 
   if (!reception) notFound();
 
@@ -27,29 +36,31 @@ export default async function ReceptionDetailPage({ params }: { params: Promise<
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button asChild variant="outline" size="sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Button asChild variant="outline" size="sm" className="w-fit">
             <Link href="/receptions">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
+              <ArrowLeft className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Volver</span>
             </Link>
           </Button>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold font-mono">{reception.folio}</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-mono text-xl font-bold sm:text-2xl">
+                {reception.folio}
+              </h1>
               <Badge className={statusColor}>{statusLabel}</Badge>
             </div>
-            <p className="text-gray-500">
+            <p className="text-xs text-gray-500 sm:text-sm">
               {new Date(reception.createdAt).toLocaleString("es-MX")}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" size="sm" className="sm:size-default">
             <Link href={`/receptions/${reception.id}/print`} target="_blank">
-              <Printer className="h-4 w-4 mr-2" />
-              Imprimir
+              <Printer className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Imprimir</span>
             </Link>
           </Button>
         </div>
@@ -58,12 +69,17 @@ export default async function ReceptionDetailPage({ params }: { params: Promise<
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Tabs defaultValue="details">
-            <TabsList>
-              <TabsTrigger value="details">Detalles</TabsTrigger>
-              <TabsTrigger value="timeline">Historial</TabsTrigger>
-              <TabsTrigger value="payments">Pagos</TabsTrigger>
-              <TabsTrigger value="signature">Firma</TabsTrigger>
-            </TabsList>
+            {/* Wrapper enables horizontal scroll on phones — 5 tabs at
+                ~75px each overflow a 375px viewport. */}
+            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+              <TabsList className="w-max min-w-full">
+                <TabsTrigger value="details">Detalles</TabsTrigger>
+                <TabsTrigger value="timeline">Historial</TabsTrigger>
+                <TabsTrigger value="payments">Pagos</TabsTrigger>
+                <TabsTrigger value="signature">Firma</TabsTrigger>
+                <TabsTrigger value="audit">Auditoría</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="details" className="space-y-4 mt-4">
               <Card>
@@ -71,7 +87,7 @@ export default async function ReceptionDetailPage({ params }: { params: Promise<
                   <CardTitle>Información del Cliente</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <p className="text-sm text-gray-500">Nombre</p>
                       <p className="font-medium">{reception.client.name}</p>
@@ -81,9 +97,11 @@ export default async function ReceptionDetailPage({ params }: { params: Promise<
                       <p className="font-medium">{reception.client.phone}</p>
                     </div>
                     {reception.client.email && (
-                      <div>
+                      <div className="break-words">
                         <p className="text-sm text-gray-500">Email</p>
-                        <p className="font-medium">{reception.client.email}</p>
+                        <p className="font-medium break-all">
+                          {reception.client.email}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -194,6 +212,10 @@ export default async function ReceptionDetailPage({ params }: { params: Promise<
 
             <TabsContent value="signature" className="mt-4">
               <SignatureSection receptionId={reception.id} signatureData={reception.signatureData} />
+            </TabsContent>
+
+            <TabsContent value="audit" className="mt-4">
+              <AuditLogSection entries={auditLog} />
             </TabsContent>
           </Tabs>
         </div>

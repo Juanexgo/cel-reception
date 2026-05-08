@@ -32,7 +32,7 @@ export function NewUserDialog() {
     formData: FormData,
   ) => {
     const result = await createUserAction(prev, formData);
-    if (result && "success" in result && result.success) {
+    if (result?.success) {
       setOpen(false);
       router.refresh();
     }
@@ -86,9 +86,9 @@ export function NewUserDialog() {
               </SelectContent>
             </Select>
           </div>
-          {state && "error" in state && state.error && (
+          {state && !state.success && (
             <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400">
-              {state.error}
+              {state.message}
             </div>
           )}
           <Button type="submit" className="w-full" disabled={isPending}>

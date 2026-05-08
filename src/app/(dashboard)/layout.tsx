@@ -4,7 +4,19 @@ import Link from "next/link";
 import { Smartphone } from "lucide-react";
 import { LogoutButton } from "@/components/common/logout-button";
 import { SidebarNav } from "@/components/common/sidebar-nav";
+import { MobileShell } from "@/components/common/mobile-shell";
 
+/**
+ * Two layout variants live in this single tree:
+ *
+ *   • Desktop (md+): a fixed 256 px sidebar on the left + scrollable main.
+ *   • Mobile  (<md): a sticky top header with a hamburger that opens an
+ *     off-canvas drawer rendered by <MobileShell>. The aside is hidden via
+ *     `hidden md:flex` so it doesn't even paint on phones.
+ *
+ * Both variants share the same SidebarNav component, so adding a new menu
+ * entry stays a one-line change.
+ */
 export default async function DashboardLayout({
   children,
 }: {
@@ -14,8 +26,10 @@ export default async function DashboardLayout({
   if (!user) redirect("/login");
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <aside className="flex w-64 flex-col bg-slate-900 text-white">
+    <div className="flex min-h-screen flex-col bg-gray-50 md:h-screen md:flex-row">
+      <MobileShell user={{ name: user.name, email: user.email }} />
+
+      <aside className="hidden w-64 flex-col bg-slate-900 text-white md:flex">
         <div className="border-b border-slate-700 p-6">
           <Link href="/dashboard" className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
@@ -38,8 +52,9 @@ export default async function DashboardLayout({
           <LogoutButton />
         </div>
       </aside>
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-7xl p-6">{children}</div>
+
+      <main className="min-w-0 flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-7xl p-4 sm:p-6">{children}</div>
       </main>
     </div>
   );
