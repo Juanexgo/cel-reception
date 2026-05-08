@@ -1,4 +1,3 @@
-import path from "node:path";
 import type { NextConfig } from "next";
 
 /**
@@ -31,9 +30,6 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Don't leak the framework version in error pages or HTTP headers.
   poweredByHeader: false,
-  // Pin the workspace root so Next.js never picks up an unrelated lockfile
-  // higher up the tree (e.g. a stray ~/package-lock.json) as the project root.
-  outputFileTracingRoot: path.resolve(__dirname),
   async headers() {
     return [
       {
